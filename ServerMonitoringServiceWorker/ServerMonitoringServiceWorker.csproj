@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+	<PropertyGroup>
+		<TargetFramework>net5.0</TargetFramework>
+		<UserSecretsId>dotnet-ServerMonitoringServiceWorker-4A2BEAE9-D129-4C2C-9360-3EB7B8583227</UserSecretsId>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="DeviceId" Version="5.3.0" />
+		<PackageReference Include="Flurl.Http" Version="3.2.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="5.0.1" />
+	</ItemGroup>
+</Project>
