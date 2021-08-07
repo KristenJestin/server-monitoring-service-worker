@@ -32,7 +32,7 @@ namespace ServerMonitoringServiceWorker
                     ConfigureHttpClient(settingsSection.Get<AppSettings>().Server);
 
                     // workers
-                    services.AddHostedService<AliveWorker>();
+                    services.AddHostedService<AliveWorker>();                    
                 });
 
 

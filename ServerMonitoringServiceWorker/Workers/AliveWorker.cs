@@ -7,6 +7,7 @@ using ServerMonitoringServiceWorker.Common.Utils;
 using ServerMonitoringServiceWorker.Models;
 using System;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -84,11 +85,17 @@ namespace ServerMonitoringServiceWorker.Workers
         #region privates
         private async Task<IFlurlResponse> SendStatusAsync(string status)
         {
+            var os = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
+            var result = Regex.Match(os, @"(windows|linux)", RegexOptions.IgnoreCase);
+
             return await _settings.Server
                 .AppendPathSegments("devices", "status", status)
                 .PostJsonAsync(new
                 {
                     device = Helpers.UniqueDeviceId.Value,
+                    name = Environment.MachineName,
+                    os = result?.Value?.ToLower(),
+                    osVersion = os
                 });
         }
         #endregion
