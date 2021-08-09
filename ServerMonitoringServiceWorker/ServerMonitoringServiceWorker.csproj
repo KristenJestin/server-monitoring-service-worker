@@ -4,9 +4,13 @@
 		<UserSecretsId>dotnet-ServerMonitoringServiceWorker-4A2BEAE9-D129-4C2C-9360-3EB7B8583227</UserSecretsId>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="DeviceId" Version="5.3.0" />
+		<PackageReference Include="DeviceId" Version="6.0.0-alpha.1627605816" />
+		<PackageReference Include="DeviceId.Linux" Version="6.0.0-alpha.1627605816" />
+		<PackageReference Include="DeviceId.Windows.Mmi" Version="6.0.0-alpha.1627605816" />
 		<PackageReference Include="Flurl.Http" Version="3.2.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="5.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="5.0.1" />
 	</ItemGroup>
+	<ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
 </Project>

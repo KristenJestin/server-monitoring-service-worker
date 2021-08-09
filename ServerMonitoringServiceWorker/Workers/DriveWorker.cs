@@ -3,25 +3,31 @@ using Flurl.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using ServerMonitoringServiceWorker.Common.Utils;
+using ServerMonitoringServiceWorker.Data;
 using ServerMonitoringServiceWorker.Models;
 using System;
-using System.Diagnostics;
-using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ServerMonitoringServiceWorker.Workers
 {
-    public class AliveWorker : BackgroundService
+    public class DriveWorker : BackgroundService
     {
-        private readonly ILogger<AliveWorker> _logger;
+
+        private readonly ILogger<DriveWorker> _logger;
         private readonly AppSettings _settings;
         private readonly IHostEnvironment _env;
 
         private readonly string device;
 
-        public AliveWorker(ILogger<AliveWorker> logger, IOptions<AppSettings> appSettings, IHostEnvironment env)
+        public DriveWorker(ILogger<DriveWorker> logger, IOptions<AppSettings> appSettings, IHostEnvironment env)
         {
             _logger = logger;
             _settings = appSettings.Value;
@@ -30,13 +36,12 @@ namespace ServerMonitoringServiceWorker.Workers
             device = Helpers.GetUniqueDeviceId(!env.IsProduction());
         }
 
-
         #region workers
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
             try
             {
-                await SendStatusAsync("up", cancellationToken);
+                await SendDrivesAsync(cancellationToken);
             }
             catch (FlurlHttpException ex)
             {
@@ -54,16 +59,14 @@ namespace ServerMonitoringServiceWorker.Workers
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation($"{nameof(AliveWorker)} running at: {DateTimeOffset.Now}");
+                // wait
+                await Task.Delay(_settings.DriveSettings.GetDurationGapInMilliseconds(), stoppingToken);
+
+                _logger.LogInformation($"{nameof(DriveWorker)} running at: {DateTimeOffset.Now}");
 
                 try
                 {
-                    var result = await _settings.Server
-                        .AppendPathSegments("devices", "alive")
-                        .PostJsonAsync(new
-                        {
-                            device,
-                        }, stoppingToken);
+                    await SendDrivesAsync(stoppingToken);
                 }
                 catch (FlurlHttpException ex)
                 {
@@ -73,9 +76,6 @@ namespace ServerMonitoringServiceWorker.Workers
                     else
                         _logger.LogError($"Error returned");
                 }
-
-                // wait
-                await Task.Delay(_settings.AliveSettings.GetDurationGapInMilliseconds(), stoppingToken);
             }
         }
 
@@ -83,7 +83,7 @@ namespace ServerMonitoringServiceWorker.Workers
         {
             try
             {
-                await SendStatusAsync("down", cancellationToken);
+                await SendDrivesAsync(cancellationToken);
             }
             catch (FlurlHttpException ex)
             {
@@ -94,26 +94,29 @@ namespace ServerMonitoringServiceWorker.Workers
                     _logger.LogError($"Error returned");
             }
 
-            await base.StopAsync(cancellationToken);
+            await base.StartAsync(cancellationToken);
         }
         #endregion
 
-
         #region privates
-        private async Task<IFlurlResponse> SendStatusAsync(string status, CancellationToken cancellationToken)
+        private async Task<IFlurlResponse> SendDrivesAsync(CancellationToken cancellationToken)
         {
-            var os = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-            var result = Regex.Match(os, @"(windows|linux)", RegexOptions.IgnoreCase);
-
             return await _settings.Server
-                .AppendPathSegments("devices", "status", status)
+                .AppendPathSegments("devices", "drives")
                 .PostJsonAsync(new
                 {
                     device,
-                    name = Environment.MachineName,
-                    os = result?.Value?.ToLower(),
-                    osVersion = os
+                    drives = GetDrives()
                 }, cancellationToken);
+        }
+
+        private static IEnumerable<Drive> GetDrives()
+        {
+            var drives = DriveInfo.GetDrives().Where(d => d.DriveType.Equals(DriveType.Fixed));
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                drives = drives.Where(d => !d.Name.StartsWith("/sys/"));
+
+            return drives.Select(d => Drive.TransformFromInfo(d));
         }
         #endregion
     }

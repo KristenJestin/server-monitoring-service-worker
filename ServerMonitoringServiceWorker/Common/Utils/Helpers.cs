@@ -1,5 +1,4 @@
 ﻿using DeviceId;
-using System;
 
 namespace ServerMonitoringServiceWorker.Common.Utils
 {
@@ -13,10 +12,13 @@ namespace ServerMonitoringServiceWorker.Common.Utils
 
             return new DeviceIdBuilder()
                 .AddMachineName()
-                //.AddMacAddress()
-                .AddMotherboardSerialNumber()
-                .AddOSVersion()
-                .AddProcessorId()
+                .AddOsVersion()
+                .AddOsVersion()
+                .OnWindows(windows => windows
+                    .AddProcessorId()
+                    .AddMotherboardSerialNumber())
+                .OnLinux(linux => linux
+                    .AddMotherboardSerialNumber())
                 .ToString() + testing;
         }
     }
