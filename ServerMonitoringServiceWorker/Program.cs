@@ -4,8 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ServerMonitoringServiceWorker.Models;
 using ServerMonitoringServiceWorker.Workers;
-using System;
-using System.Diagnostics;
 
 namespace ServerMonitoringServiceWorker
 {

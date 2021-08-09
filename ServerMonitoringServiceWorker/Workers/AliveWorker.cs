@@ -17,11 +17,17 @@ namespace ServerMonitoringServiceWorker.Workers
     {
         private readonly ILogger<AliveWorker> _logger;
         private readonly AppSettings _settings;
+        private readonly IHostEnvironment _env;
 
-        public AliveWorker(ILogger<AliveWorker> logger, IOptions<AppSettings> appSettings)
+        private readonly string device;
+
+        public AliveWorker(ILogger<AliveWorker> logger, IOptions<AppSettings> appSettings, IHostEnvironment env)
         {
             _logger = logger;
             _settings = appSettings.Value;
+            _env = env;
+
+            device = Helpers.GetUniqueDeviceId(!env.IsProduction());
         }
 
 
@@ -34,7 +40,10 @@ namespace ServerMonitoringServiceWorker.Workers
             catch (FlurlHttpException ex)
             {
                 var error = await ex.GetResponseJsonAsync();
-                _logger.LogError($"Error returned from {ex.Call.Request.Url}: {error.SomeDetails}");
+                if (error != null)
+                    _logger.LogError($"Error returned from {ex.Call.Request.Url}: {error.SomeDetails}");
+                else
+                    _logger.LogError($"Error returned");
             }
 
             await base.StartAsync(cancellationToken);
@@ -44,7 +53,7 @@ namespace ServerMonitoringServiceWorker.Workers
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                _logger.LogDebug("Worker running at: {time}", DateTimeOffset.Now);
 
                 try
                 {
@@ -52,13 +61,16 @@ namespace ServerMonitoringServiceWorker.Workers
                         .AppendPathSegments("devices", "alive")
                         .PostJsonAsync(new
                         {
-                            device = Helpers.UniqueDeviceId.Value,
+                            device,
                         });
                 }
                 catch (FlurlHttpException ex)
                 {
                     var error = await ex.GetResponseJsonAsync();
-                    _logger.LogError($"Error returned from {ex.Call.Request.Url}: {error.SomeDetails}");
+                    if (error != null)
+                        _logger.LogError($"Error returned from {ex.Call.Request.Url}: {error.SomeDetails}");
+                    else
+                        _logger.LogError($"Error returned");
                 }
 
                 // wait
@@ -75,7 +87,10 @@ namespace ServerMonitoringServiceWorker.Workers
             catch (FlurlHttpException ex)
             {
                 var error = await ex.GetResponseJsonAsync();
-                _logger.LogError($"Error returned from {ex.Call.Request.Url}: {error.SomeDetails}");
+                if (error != null)
+                    _logger.LogError($"Error returned from {ex.Call.Request.Url}: {error.SomeDetails}");
+                else
+                    _logger.LogError($"Error returned");
             }
 
             await base.StopAsync(cancellationToken);
@@ -92,7 +107,7 @@ namespace ServerMonitoringServiceWorker.Workers
                 .AppendPathSegments("devices", "status", status)
                 .PostJsonAsync(new
                 {
-                    device = Helpers.UniqueDeviceId.Value,
+                    device,
                     name = Environment.MachineName,
                     os = result?.Value?.ToLower(),
                     osVersion = os
