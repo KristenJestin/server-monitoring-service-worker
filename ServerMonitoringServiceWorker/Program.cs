@@ -79,7 +79,7 @@ namespace ServerMonitoringServiceWorker
         {
             string logPath;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                logPath = Path.Join("var", "log", APP_NAME.ToLower(), "log.txt");
+                logPath = Path.Join("/var", "log", APP_NAME.ToLower(), "log.txt");
             else
                 logPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), APP_NAME, "logs", "log.txt");
 
