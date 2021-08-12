@@ -1,13 +1,8 @@
-﻿using Flurl;
-using Flurl.Http;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ServerMonitoringServiceWorker.Common.Utils;
 using ServerMonitoringServiceWorker.Common.Models;
-using System;
-using System.Diagnostics;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using ServerMonitoringServiceWorker.Api;
@@ -31,7 +26,7 @@ namespace ServerMonitoringServiceWorker.Workers
 
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"{nameof(AliveWorker)} start at: {DateTimeOffset.Now}");
+            _logger.LogInformation("Start");
             await Helpers.HandlingHttpRequestException(_service.StatusUpAsync, _logger, cancellationToken);
 
             await base.StartAsync(cancellationToken);
@@ -41,7 +36,7 @@ namespace ServerMonitoringServiceWorker.Workers
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation($"{nameof(AliveWorker)} running at: {DateTimeOffset.Now}");
+                _logger.LogInformation("Running");
                 await Helpers.HandlingHttpRequestException(_service.AliveAsync, _logger, stoppingToken);
 
                 // if status up failed before
@@ -62,7 +57,7 @@ namespace ServerMonitoringServiceWorker.Workers
 
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"{nameof(AliveWorker)} stop at: {DateTimeOffset.Now}");
+            _logger.LogInformation("Stop");
             await Helpers.HandlingHttpRequestException(_service.StatusDownAsync, _logger, cancellationToken);
 
             await base.StartAsync(cancellationToken);

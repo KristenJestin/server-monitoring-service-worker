@@ -29,16 +29,11 @@ namespace ServerMonitoringServiceWorker.Common.Utils
         {
             try
             {
-                logger.LogInformation($"new logger");
                 await request(cancellationToken);
             }
             catch (FlurlHttpException ex)
             {
-                var error = await ex.GetResponseJsonAsync();
-                if (error != null)
-                    logger.LogError($"Error returned from {ex.Call.Request.Url}");
-                else
-                    logger.LogError($"Error returned");
+                logger.LogError(ex, "Error when sending to " + (ex.Call?.Request?.Url ?? ""));
             }
         }
     }

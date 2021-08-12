@@ -5,22 +5,42 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Serilog;
+using Serilog.Events;
 using ServerMonitoringServiceWorker.Api;
 using ServerMonitoringServiceWorker.Common.Models;
-using ServerMonitoringServiceWorker.Common.Utils;
 using ServerMonitoringServiceWorker.Services;
 using ServerMonitoringServiceWorker.Workers;
 using System;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace ServerMonitoringServiceWorker
 {
     public class Program
     {
+        public const string APP_NAME = "ServerMonitoring";
         public const string BASE_URL_SEGMENT = "devices";
 
-        public static void Main(string[] args)
+        public static int Main(string[] args)
         {
-            CreateHostBuilder(args).Build().Run();
+            ConfigureLogger();
+
+            try
+            {
+                Log.Information("Starting host");
+                CreateHostBuilder(args).Build().Run();
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "Host terminated unexpectedly");
+                return 1;
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+            }
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
@@ -50,10 +70,34 @@ namespace ServerMonitoringServiceWorker
                     // workers
                     services.AddHostedService<AliveWorker>();
                     services.AddHostedService<DriveWorker>();
-                });
+                })
+                .UseSerilog();
 
 
         #region privates
+        private static void ConfigureLogger()
+        {
+            string logPath;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                logPath = Path.Join("var", "log", APP_NAME.ToLower(), "log.txt");
+            else
+                logPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), APP_NAME, "logs", "log.txt");
+
+            var logTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u}] [{SourceContext}] {Message}{NewLine}{Exception}";
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                .Enrich.FromLogContext()
+                .WriteTo.Console(outputTemplate: logTemplate)
+                .WriteTo.File(logPath,
+                    rollingInterval: RollingInterval.Day,
+                    rollOnFileSizeLimit: true,
+                    outputTemplate: logTemplate)
+                .CreateLogger();
+
+            Log.Information($"Define log path to : {logPath}");
+        }
+
         private static void ConfigureHttpClient(AppSettings settings)
         {
             // variables

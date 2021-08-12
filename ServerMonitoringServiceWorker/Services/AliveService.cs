@@ -1,7 +1,5 @@
 ﻿using Flurl;
 using Flurl.Http;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ServerMonitoringServiceWorker.Common.Models;
 using System;

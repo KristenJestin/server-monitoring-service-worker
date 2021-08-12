@@ -1,18 +1,8 @@
-﻿using Flurl;
-using Flurl.Http;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using ServerMonitoringServiceWorker.Common.Utils;
-using ServerMonitoringServiceWorker.Data;
 using ServerMonitoringServiceWorker.Common.Models;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using ServerMonitoringServiceWorker.Services;
@@ -35,7 +25,7 @@ namespace ServerMonitoringServiceWorker.Workers
 
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"{nameof(DriveWorker)} start at: {DateTimeOffset.Now}");
+            _logger.LogInformation("Start");
             await Helpers.HandlingHttpRequestException(_service.UsageAsync, _logger, cancellationToken);
 
             await base.StartAsync(cancellationToken);
@@ -48,14 +38,14 @@ namespace ServerMonitoringServiceWorker.Workers
                 // wait
                 await Task.Delay(_settings.DriveSettings.DurationGap, stoppingToken);
 
-                _logger.LogInformation($"{nameof(DriveWorker)} running at: {DateTimeOffset.Now}");
-                await Helpers.HandlingHttpRequestException(_service.UsageAsync, _logger, stoppingToken); _logger.LogError($"Error returned");
+                _logger.LogInformation("Running");
+                await Helpers.HandlingHttpRequestException(_service.UsageAsync, _logger, stoppingToken);
             }
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"{nameof(DriveWorker)} stop at: {DateTimeOffset.Now}");
+            _logger.LogInformation("Stop");
             await Helpers.HandlingHttpRequestException(_service.UsageAsync, _logger, cancellationToken);
 
             await base.StartAsync(cancellationToken);
