@@ -20,6 +20,7 @@ namespace ServerMonitoringServiceWorker.Workers
         private readonly IHostEnvironment _env;
 
         private readonly string device;
+        private bool StatusUpSent { get; set; }
 
         public AliveWorker(ILogger<AliveWorker> logger, IOptions<AppSettings> appSettings, IHostEnvironment env)
         {
@@ -37,6 +38,7 @@ namespace ServerMonitoringServiceWorker.Workers
             try
             {
                 await SendStatusAsync("up", cancellationToken);
+                StatusUpSent = true;
             }
             catch (FlurlHttpException ex)
             {
@@ -72,6 +74,24 @@ namespace ServerMonitoringServiceWorker.Workers
                         _logger.LogError($"Error returned from {ex.Call.Request.Url}");
                     else
                         _logger.LogError($"Error returned");
+                }
+
+                // check if status up has been set
+                if (!StatusUpSent)
+                {
+                    try
+                    {
+                        await SendStatusAsync("up", stoppingToken);
+                        StatusUpSent = true;
+                    }
+                    catch (FlurlHttpException ex)
+                    {
+                        var error = await ex.GetResponseJsonAsync();
+                        if (error != null)
+                            _logger.LogError($"Error returned from {ex.Call.Request.Url}");
+                        else
+                            _logger.LogError($"Error returned");
+                    }
                 }
 
                 // wait

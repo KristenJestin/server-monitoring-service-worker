@@ -32,7 +32,8 @@ namespace ServerMonitoringServiceWorker
                     services.Configure<AppSettings>(settingsSection);
 
                     // http
-                    ConfigureHttpClient(settingsSection.Get<AppSettings>().Server);
+                    var settings = settingsSection.Get<AppSettings>();
+                    ConfigureHttpClient(settings);
 
                     // workers
                     services.AddHostedService<AliveWorker>();
@@ -41,8 +42,13 @@ namespace ServerMonitoringServiceWorker
 
 
         #region privates
-        public static void ConfigureHttpClient(string baseUrl)
+        public static void ConfigureHttpClient(AppSettings settings)
         {
+            // variables
+            var baseUrl = settings.Server;
+            var apiKey = settings.ApiKey;
+
+            // configures
             FlurlHttp.Configure(settings =>
             {
                 var jsonSettings = new JsonSerializerSettings
@@ -51,11 +57,14 @@ namespace ServerMonitoringServiceWorker
                 };
                 settings.JsonSerializer = new NewtonsoftJsonSerializer(jsonSettings);
             });
-
             FlurlHttp.ConfigureClient(baseUrl, cli =>
             {
                 cli
-                    .WithHeader("Accept", "application/json")
+                    .WithHeaders(new
+                    {
+                        Accept = "application/json",
+                        Authorization = "Bearer " + apiKey
+                    })
                     .WithTimeout(5);
             });
         }
