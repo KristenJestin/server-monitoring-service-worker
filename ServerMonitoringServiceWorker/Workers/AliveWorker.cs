@@ -4,50 +4,35 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ServerMonitoringServiceWorker.Common.Utils;
-using ServerMonitoringServiceWorker.Models;
+using ServerMonitoringServiceWorker.Common.Models;
 using System;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using ServerMonitoringServiceWorker.Api;
 
 namespace ServerMonitoringServiceWorker.Workers
 {
     public class AliveWorker : BackgroundService
     {
-        private readonly ILogger<AliveWorker> _logger;
+        private readonly AliveService _service;
         private readonly AppSettings _settings;
-        private readonly IHostEnvironment _env;
+        private readonly ILogger<AliveWorker> _logger;
 
-        private readonly string device;
         private bool StatusUpSent { get; set; }
 
-        public AliveWorker(ILogger<AliveWorker> logger, IOptions<AppSettings> appSettings, IHostEnvironment env)
+        public AliveWorker(ILogger<AliveWorker> logger, IOptions<AppSettings> appSettings, AliveService service)
         {
-            _logger = logger;
+            _service = service;
             _settings = appSettings.Value;
-            _env = env;
-
-            device = Helpers.GetUniqueDeviceId(!env.IsProduction());
+            _logger = logger;
         }
 
-
-        #region workers
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            try
-            {
-                await SendStatusAsync("up", cancellationToken);
-                StatusUpSent = true;
-            }
-            catch (FlurlHttpException ex)
-            {
-                var error = await ex.GetResponseJsonAsync();
-                if (error != null)
-                    _logger.LogError($"Error returned from {ex.Call.Request.Url}");
-                else
-                    _logger.LogError($"Error returned");
-            }
+            _logger.LogInformation($"{nameof(AliveWorker)} start at: {DateTimeOffset.Now}");
+            await Helpers.HandlingHttpRequestException(_service.StatusUpAsync, _logger, cancellationToken);
 
             await base.StartAsync(cancellationToken);
         }
@@ -57,84 +42,30 @@ namespace ServerMonitoringServiceWorker.Workers
             while (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation($"{nameof(AliveWorker)} running at: {DateTimeOffset.Now}");
+                await Helpers.HandlingHttpRequestException(_service.AliveAsync, _logger, stoppingToken);
 
-                try
-                {
-                    var result = await _settings.Server
-                        .AppendPathSegments("devices", "alive")
-                        .PostJsonAsync(new
-                        {
-                            device,
-                        }, stoppingToken);
-                }
-                catch (FlurlHttpException ex)
-                {
-                    var error = await ex.GetResponseJsonAsync();
-                    if (error != null)
-                        _logger.LogError($"Error returned from {ex.Call.Request.Url}");
-                    else
-                        _logger.LogError($"Error returned");
-                }
-
-                // check if status up has been set
+                // if status up failed before
                 if (!StatusUpSent)
-                {
-                    try
+                    await Helpers.HandlingHttpRequestException(async (cancellationToken) =>
                     {
-                        await SendStatusAsync("up", stoppingToken);
+                        var result = await _service.StatusUpAsync(cancellationToken);
                         StatusUpSent = true;
-                    }
-                    catch (FlurlHttpException ex)
-                    {
-                        var error = await ex.GetResponseJsonAsync();
-                        if (error != null)
-                            _logger.LogError($"Error returned from {ex.Call.Request.Url}");
-                        else
-                            _logger.LogError($"Error returned");
-                    }
-                }
+
+                        return result;
+                    }, _logger, stoppingToken);
+
 
                 // wait
-                await Task.Delay(_settings.AliveSettings.GetDurationGapInMilliseconds(), stoppingToken);
+                await Task.Delay(_settings.AliveSettings.DurationGap, stoppingToken);
             }
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
-            try
-            {
-                await SendStatusAsync("down", cancellationToken);
-            }
-            catch (FlurlHttpException ex)
-            {
-                var error = await ex.GetResponseJsonAsync();
-                if (error != null)
-                    _logger.LogError($"Error returned from {ex.Call.Request.Url}");
-                else
-                    _logger.LogError($"Error returned");
-            }
+            _logger.LogInformation($"{nameof(AliveWorker)} stop at: {DateTimeOffset.Now}");
+            await Helpers.HandlingHttpRequestException(_service.StatusDownAsync, _logger, cancellationToken);
 
-            await base.StopAsync(cancellationToken);
+            await base.StartAsync(cancellationToken);
         }
-        #endregion
-
-
-        #region privates
-        private async Task<IFlurlResponse> SendStatusAsync(string status, CancellationToken cancellationToken)
-        {
-            var os = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-            var result = Regex.Match(os, @"(windows|linux)", RegexOptions.IgnoreCase);
-
-            return await _settings.Server
-                .AppendPathSegments("devices", "status", status)
-                .PostJsonAsync(new
-                {
-                    device,
-                    name = Environment.MachineName,
-                    os = result?.Value?.ToLower(),
-                    osVersion = os
-                }, cancellationToken);
-        }
-        #endregion
     }
 }

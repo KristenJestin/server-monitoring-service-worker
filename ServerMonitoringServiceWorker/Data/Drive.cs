@@ -15,7 +15,7 @@ namespace ServerMonitoringServiceWorker.Data
 
 
         #region statics
-        public static Drive TransformFromInfo(DriveInfo info)
+        public static Drive TransformFromDriveInfo(DriveInfo info)
         {
             return new Drive
             {

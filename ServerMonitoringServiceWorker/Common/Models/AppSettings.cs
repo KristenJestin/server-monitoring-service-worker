@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ServerMonitoringServiceWorker.Models
+namespace ServerMonitoringServiceWorker.Common.Models
 {
     public class AppSettings
     {
@@ -18,11 +18,5 @@ namespace ServerMonitoringServiceWorker.Models
     public abstract class WorkerSettings
     {
         public TimeSpan DurationGap { get; set; }
-
-
-        #region methods
-        public int GetDurationGapInMilliseconds()
-            => (int)DurationGap.TotalMilliseconds;
-        #endregion
     }
 }

@@ -5,7 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using ServerMonitoringServiceWorker.Models;
+using ServerMonitoringServiceWorker.Api;
+using ServerMonitoringServiceWorker.Common.Models;
+using ServerMonitoringServiceWorker.Common.Utils;
+using ServerMonitoringServiceWorker.Services;
 using ServerMonitoringServiceWorker.Workers;
 using System;
 
@@ -13,6 +16,8 @@ namespace ServerMonitoringServiceWorker
 {
     public class Program
     {
+        public const string BASE_URL_SEGMENT = "devices";
+
         public static void Main(string[] args)
         {
             CreateHostBuilder(args).Build().Run();
@@ -26,6 +31,8 @@ namespace ServerMonitoringServiceWorker
                 {
                     // data
                     var configuration = hostContext.Configuration;
+                    var env = hostContext.HostingEnvironment;
+
 
                     // settings
                     var settingsSection = configuration.GetSection("AppSettings");
@@ -35,6 +42,11 @@ namespace ServerMonitoringServiceWorker
                     var settings = settingsSection.Get<AppSettings>();
                     ConfigureHttpClient(settings);
 
+                    // services
+                    services.AddSingleton(Device.Build(env.IsProduction()));
+                    services.AddTransient<AliveService>();
+                    services.AddTransient<DriveService>();
+
                     // workers
                     services.AddHostedService<AliveWorker>();
                     services.AddHostedService<DriveWorker>();
@@ -42,7 +54,7 @@ namespace ServerMonitoringServiceWorker
 
 
         #region privates
-        public static void ConfigureHttpClient(AppSettings settings)
+        private static void ConfigureHttpClient(AppSettings settings)
         {
             // variables
             var baseUrl = settings.Server;
