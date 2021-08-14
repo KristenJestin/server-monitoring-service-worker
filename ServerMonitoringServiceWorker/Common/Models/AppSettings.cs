@@ -13,7 +13,10 @@ namespace ServerMonitoringServiceWorker.Common.Models
 
 
     public class AliveWorkerSettings : WorkerSettings { }
-    public class DriveWorkerSettings : WorkerSettings { }
+    public class DriveWorkerSettings : WorkerSettings
+    {
+        public bool TakeDockerVolumes { get; set; }
+    }
 
     public abstract class WorkerSettings
     {

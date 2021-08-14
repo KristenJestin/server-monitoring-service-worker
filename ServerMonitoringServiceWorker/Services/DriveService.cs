@@ -34,9 +34,13 @@ namespace ServerMonitoringServiceWorker.Services
         {
             var drivesInfo = DriveInfo.GetDrives().Where(d => d.DriveType.Equals(DriveType.Fixed));
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                drivesInfo = drivesInfo.Where(d => !d.Name.StartsWith("/sys/"));
+                drivesInfo = drivesInfo.Where(d => !d.Name.StartsWith("/sys/")); // only take 'real' drives
 
-            var drives = drivesInfo.Select(d => Drive.TransformFromDriveInfo(d));
+            if (!_settings.DriveSettings.TakeDockerVolumes)
+                drivesInfo = drivesInfo.Where(d => !d.Name.Contains("docker")); // remove docker volumes
+
+            var drives = drivesInfo
+                .Select(d => Drive.TransformFromDriveInfo(d));
 
 
             return await _settings.Server
